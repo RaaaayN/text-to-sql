@@ -145,6 +145,31 @@ def test_resolver_adds_exactly_one_foreign_key_hop() -> None:
     assert resolved.selected_columns["books"] == ("id", "author_id", "title")
 
 
+def test_resolver_ignores_dangling_foreign_keys_and_matches_table_case() -> None:
+    schema = DatabaseSchema(
+        (
+            TableSchema("Country", (ColumnSchema("id", "INTEGER", False, 1),)),
+            TableSchema(
+                "cities",
+                (
+                    ColumnSchema("id", "INTEGER", False, 1),
+                    ColumnSchema("country_id", "INTEGER", False),
+                ),
+                (
+                    ForeignKeySchema("country_id", "country", "id"),
+                    ForeignKeySchema("country_id", "missing_table", "id"),
+                ),
+            ),
+        )
+    )
+
+    resolved = SchemaResolver(schema, top_k=1).resolve("cities")
+
+    assert [table.name for table in resolved.schema.tables] == ["Country", "cities"]
+    assert set(resolved.scores) == {"Country", "cities"}
+    assert 'REFERENCES "Country"' in render_schema_prompt(resolved)
+
+
 def test_resolver_honours_top_k_and_uses_stable_tie_breaking() -> None:
     schema = DatabaseSchema(
         (
