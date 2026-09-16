@@ -146,7 +146,7 @@ def _connect_read_only(path: str | Path) -> sqlite3.Connection:
 def introspect_sqlite(
     source: str | Path | sqlite3.Connection,
     *,
-    sample_rows: int = 3,
+    sample_rows: int = 10,
     max_sample_chars: int = 120,
 ) -> DatabaseSchema:
     """Inspect user tables, columns, keys and bounded distinct sample values.
@@ -271,15 +271,19 @@ class SchemaResolver:
         top_k: int = 3,
         column_top_k: int = 8,
         min_score: float = 0.25,
+        fk_hops: int = 2,
     ) -> None:
         if top_k < 1 or column_top_k < 1:
             raise ValueError("top_k and column_top_k must be positive")
         if min_score < 0:
             raise ValueError("min_score must be non-negative")
+        if fk_hops < 1:
+            raise ValueError("fk_hops must be positive")
         self.schema = schema
         self.top_k = top_k
         self.column_top_k = column_top_k
         self.min_score = min_score
+        self.fk_hops = fk_hops
 
         self._documents: dict[tuple[str, str | None], tuple[str, ...]] = {}
         for table in schema.tables:
@@ -319,23 +323,37 @@ class SchemaResolver:
             table_scores[table.name] = name_score * 1.5 + best_column + 0.05 * accumulated
 
         ranked = sorted(table_scores, key=lambda name: (-table_scores[name], name))
-        if not ranked or table_scores[ranked[0]] < self.min_score:
+        if not ranked or table_scores[ranked[0]] <= 0:
             return self._refusal("schema does not plausibly cover the question", table_scores)
+        if table_scores[ranked[0]] < self.min_score:
+            # Some lexical overlap exists but not enough to trust a narrow
+            # selection: a wrong guess is worse than sending everything, so
+            # fall back to the full schema instead of refusing outright.
+            return self._full_schema(table_scores)
         core = [name for name in ranked if table_scores[name] >= self.min_score][: self.top_k]
 
-        # One-hop closure is deliberately based only on the core selection;
-        # newly added neighbours do not recursively expand the graph.
+        # Closure expands outward from the core selection for a bounded
+        # number of hops so that multi-table join paths are not lost, without
+        # letting the graph expand without limit.
         selected_names = set(core)
         canonical_tables = {table.name.casefold(): table.name for table in self.schema.tables}
-        for table in self.schema.tables:
-            for foreign_key in table.foreign_keys:
-                referenced_table = canonical_tables.get(foreign_key.referenced_table.casefold())
-                if referenced_table is None:
-                    # Real-world SQLite files can contain dangling FK metadata.
-                    continue
-                if table.name in core or referenced_table in core:
-                    selected_names.add(table.name)
-                    selected_names.add(referenced_table)
+        frontier = set(core)
+        for _ in range(self.fk_hops):
+            newly_added: set[str] = set()
+            for table in self.schema.tables:
+                for foreign_key in table.foreign_keys:
+                    referenced_table = canonical_tables.get(foreign_key.referenced_table.casefold())
+                    if referenced_table is None:
+                        # Real-world SQLite files can contain dangling FK metadata.
+                        continue
+                    if table.name in frontier or referenced_table in frontier:
+                        newly_added.add(table.name)
+                        newly_added.add(referenced_table)
+            newly_added -= selected_names
+            if not newly_added:
+                break
+            selected_names |= newly_added
+            frontier = newly_added
 
         selected_tables = tuple(
             table for table in self.schema.tables if table.name in selected_names
@@ -381,6 +399,13 @@ class SchemaResolver:
 
         scores = {name: table_scores[name] for name in sorted(selected_names)}
         return ResolvedSchema(DatabaseSchema(selected_tables), selected_columns, scores)
+
+    def _full_schema(self, scores: Mapping[str, float]) -> ResolvedSchema:
+        selected_columns = {
+            table.name: tuple(column.name for column in table.columns)
+            for table in self.schema.tables
+        }
+        return ResolvedSchema(self.schema, selected_columns, scores)
 
     def _refusal(self, reason: str, scores: Mapping[str, float] | None = None) -> ResolvedSchema:
         return ResolvedSchema(

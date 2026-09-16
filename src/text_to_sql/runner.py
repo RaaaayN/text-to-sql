@@ -86,8 +86,18 @@ def evaluate_configuration(
     llm: LLMClient,
     max_rows: int = 1_000,
     timeout_seconds: float = 30.0,
+    schema_top_k: int = 4,
+    schema_column_top_k: int = 8,
+    schema_min_score: float = 0.2,
+    schema_sample_rows: int = 10,
+    schema_fk_hops: int = 2,
 ) -> tuple[EvaluationRecord, ...]:
-    """Evaluate one configuration, preserving one auditable record per example."""
+    """Evaluate one configuration, preserving one auditable record per example.
+
+    The resolver knobs default to the same values as ``Settings`` (config.py)
+    so ablation numbers reflect the resolver the API actually runs, and so a
+    hyperparameter sweep can override them without touching the harness.
+    """
 
     services: dict[str, TextToSQLService] = {}
     executors: dict[str, SQLiteExecutor] = {}
@@ -95,9 +105,15 @@ def evaluate_configuration(
     for example in examples:
         if example.database_id not in services:
             path = bird_database_path(database_root, example.database_id)
-            schema = introspect_sqlite(path)
+            schema = introspect_sqlite(path, sample_rows=schema_sample_rows)
             resolver = (
-                SchemaResolver(schema)
+                SchemaResolver(
+                    schema,
+                    top_k=schema_top_k,
+                    column_top_k=schema_column_top_k,
+                    min_score=schema_min_score,
+                    fk_hops=schema_fk_hops,
+                )
                 if configuration.schema_resolution
                 else FullSchemaResolver(schema)
             )
@@ -162,6 +178,11 @@ def run_ablation_suite(
     seed: int = 20260916,
     configurations: Sequence[AblationConfiguration] = STANDARD_ABLATIONS,
     pricing_usd_per_million: tuple[float, float] | None = None,
+    schema_top_k: int = 4,
+    schema_column_top_k: int = 8,
+    schema_min_score: float = 0.2,
+    schema_sample_rows: int = 10,
+    schema_fk_hops: int = 2,
 ) -> dict[str, object]:
     """Run, journal, summarize and atomically publish a complete ablation suite."""
 
@@ -177,6 +198,11 @@ def run_ablation_suite(
                 database_root=database_root,
                 configuration=configuration,
                 llm=llm_factory(configuration),
+                schema_top_k=schema_top_k,
+                schema_column_top_k=schema_column_top_k,
+                schema_min_score=schema_min_score,
+                schema_sample_rows=schema_sample_rows,
+                schema_fk_hops=schema_fk_hops,
             )
             write_jsonl(journal_path, records)
         records_by_configuration[configuration.name] = records

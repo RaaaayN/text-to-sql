@@ -110,8 +110,8 @@ def test_resolver_matches_names_and_sample_values_and_selects_columns(tmp_path: 
     assert "status" in by_value.selected_columns["orders"]
 
 
-def test_resolver_adds_exactly_one_foreign_key_hop() -> None:
-    schema = DatabaseSchema(
+def _authors_books_reviews_schema() -> DatabaseSchema:
+    return DatabaseSchema(
         (
             TableSchema(
                 "authors",
@@ -138,11 +138,28 @@ def test_resolver_adds_exactly_one_foreign_key_hop() -> None:
         )
     )
 
-    resolved = SchemaResolver(schema, top_k=1).resolve("author")
+
+def test_resolver_adds_foreign_keys_up_to_two_hops_by_default() -> None:
+    resolved = SchemaResolver(_authors_books_reviews_schema(), top_k=1).resolve("author")
+
+    assert [table.name for table in resolved.schema.tables] == ["authors", "books", "reviews"]
+    assert resolved.selected_columns["books"] == ("id", "author_id", "title")
+    assert resolved.selected_columns["reviews"] == ("id", "book_id", "sentiment")
+
+
+def test_resolver_fk_hops_can_be_limited_to_one() -> None:
+    resolved = SchemaResolver(
+        _authors_books_reviews_schema(), top_k=1, fk_hops=1
+    ).resolve("author")
 
     assert [table.name for table in resolved.schema.tables] == ["authors", "books"]
     assert "reviews" not in resolved.selected_columns
     assert resolved.selected_columns["books"] == ("id", "author_id", "title")
+
+
+def test_resolver_rejects_invalid_fk_hops() -> None:
+    with pytest.raises(ValueError, match="fk_hops"):
+        SchemaResolver(DatabaseSchema(()), fk_hops=0)
 
 
 def test_resolver_ignores_dangling_foreign_keys_and_matches_table_case() -> None:
@@ -193,6 +210,26 @@ def test_resolver_refuses_when_no_schema_evidence_exists(tmp_path: Path) -> None
     assert result.refused
     assert result.schema.tables == ()
     assert result.reason == "schema does not plausibly cover the question"
+
+
+def test_resolver_falls_back_to_full_schema_on_weak_but_nonzero_evidence(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "shop.sqlite"
+    _build_database(database)
+    # A threshold no real score can reach forces every question with some
+    # lexical overlap into the low-confidence branch.
+    resolver = SchemaResolver(introspect_sqlite(database), min_score=1_000.0)
+
+    result = resolver.resolve("List the pending orders")
+
+    assert not result.refused
+    assert {table.name for table in result.schema.tables} == {
+        "customers",
+        "orders",
+        "products",
+    }
+    assert result.selected_columns["orders"] == ("id", "customer_id", "total_cents", "status")
 
 
 def test_resolver_configuration_validation() -> None:

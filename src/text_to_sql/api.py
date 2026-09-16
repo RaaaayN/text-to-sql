@@ -40,7 +40,7 @@ class QueryResponse(BaseModel):
 
 
 def build_service(settings: Settings, metrics: ServiceMetrics) -> TextToSQLService:
-    schema = introspect_sqlite(settings.database_path)
+    schema = introspect_sqlite(settings.database_path, sample_rows=settings.schema_sample_rows)
     input_price, output_price = settings.token_prices
     pricing = TokenPricing(input_price, output_price)
     if settings.llm_provider == "gemini":

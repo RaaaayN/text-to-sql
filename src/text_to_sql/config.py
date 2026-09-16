@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     query_timeout_seconds: float = Field(default=5.0, gt=0, le=60)
     schema_top_k: int = Field(default=4, ge=1, le=20)
     schema_min_score: float = Field(default=0.2, ge=0)
+    schema_sample_rows: int = Field(default=10, ge=0, le=100)
     input_token_price_per_million: float | None = Field(default=None, ge=0)
     output_token_price_per_million: float | None = Field(default=None, ge=0)
 
