@@ -37,11 +37,23 @@ Le parcours exact du README, sans serveur ni réseau, est vérifié par :
 uv run python scripts/readme_smoke.py
 ```
 
+Pour un seul appel Gemini réellement mesuré avant une évaluation coûteuse :
+
+```bash
+TEXT_TO_SQL_LLM_PROVIDER=gemini \
+TEXT_TO_SQL_MODEL_NAME=gemini-3.1-flash-lite \
+TEXT_TO_SQL_API_KEY=... \
+uv run --extra gemini text-to-sql smoke
+```
+
+La sortie JSON contient les tokens fournisseur, les tokens de réflexion facturables, la latence
+du modèle, la latence totale et le coût estimé au tarif standard publié.
+
 Pour Gemini, installer l'extra puis définir les variables documentées dans `.env.example` :
 
 ```bash
 uv sync --frozen --extra dev --extra gemini
-TEXT_TO_SQL_LLM_PROVIDER=gemini TEXT_TO_SQL_GEMINI_API_KEY=... uv run text-to-sql serve
+TEXT_TO_SQL_LLM_PROVIDER=gemini TEXT_TO_SQL_API_KEY=... uv run text-to-sql serve
 ```
 
 Docker exécute le même service : `docker build -t text-to-sql .` puis
@@ -68,7 +80,7 @@ garde-fous contre un petit échantillon, le faux fournisseur et l'écrasement du
 
 ```bash
 uv run text-to-sql evaluate mini_dev.json databases artifacts/dev-run
-TEXT_TO_SQL_LLM_PROVIDER=gemini TEXT_TO_SQL_GEMINI_API_KEY=... \
+TEXT_TO_SQL_LLM_PROVIDER=gemini TEXT_TO_SQL_API_KEY=... \
   uv run text-to-sql evaluate mini_dev.json databases artifacts/final-run --final
 ```
 

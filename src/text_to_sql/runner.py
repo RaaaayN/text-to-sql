@@ -160,6 +160,7 @@ def run_ablation_suite(
     model_version: str,
     seed: int = 20260916,
     configurations: Sequence[AblationConfiguration] = STANDARD_ABLATIONS,
+    pricing_usd_per_million: tuple[float, float] | None = None,
 ) -> dict[str, object]:
     """Run, journal, summarize and atomically publish a complete ablation suite."""
 
@@ -181,5 +182,12 @@ def run_ablation_suite(
         model_version=model_version,
         seed=seed,
     )
+    if pricing_usd_per_million is not None:
+        report["pricing"] = {
+            "basis": "standard_paid_tier_list_price",
+            "currency": "USD",
+            "input_per_million_tokens": pricing_usd_per_million[0],
+            "output_per_million_tokens_including_thinking": pricing_usd_per_million[1],
+        }
     write_json(output / "evaluation-report.json", report)
     return report

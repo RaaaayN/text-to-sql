@@ -9,7 +9,12 @@
   "bootstrap_resamples": 10000,
   "examples": 0,
   "baseline": "direct",
+  "pricing": {
+    "basis": "standard_paid_tier_list_price",
+    "currency": "USD",
+    "input_per_million_tokens": 0.25,
+    "output_per_million_tokens_including_thinking": 1.5
+  },
   "configurations": {},
   "accuracy_deltas_vs_baseline": {}
 }
-

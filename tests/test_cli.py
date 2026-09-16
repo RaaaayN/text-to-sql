@@ -24,6 +24,21 @@ def test_init_demo_refuses_to_overwrite(tmp_path: Path) -> None:
         main(["init-demo", "--database", str(database)])
 
 
+def test_smoke_prints_measured_json(tmp_path: Path, monkeypatch, capsys) -> None:
+    database = tmp_path / "demo.sqlite"
+    main(["init-demo", "--database", str(database)])
+    capsys.readouterr()
+    monkeypatch.setenv("TEXT_TO_SQL_DATABASE_PATH", str(database))
+    monkeypatch.setenv("TEXT_TO_SQL_LLM_PROVIDER", "fake")
+
+    assert main(["smoke"]) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "success"
+    assert payload["rows"] == [[3]]
+    assert payload["model"] == "fake"
+
+
 def test_freeze_split_writes_manifest(tmp_path: Path) -> None:
     source = tmp_path / "bird.json"
     destination = tmp_path / "manifest.json"
@@ -36,7 +51,8 @@ def test_freeze_split_writes_manifest(tmp_path: Path) -> None:
     assert json.loads(destination.read_text(encoding="utf-8"))["count"] == 1
 
 
-def test_evaluate_runs_four_offline_ablation_smoke_tests(tmp_path: Path) -> None:
+def test_evaluate_runs_four_offline_ablation_smoke_tests(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("TEXT_TO_SQL_LLM_PROVIDER", "fake")
     database = tmp_path / "databases" / "shop.sqlite"
     database.parent.mkdir()
     with sqlite3.connect(database) as connection:
@@ -57,7 +73,19 @@ def test_evaluate_runs_four_offline_ablation_smoke_tests(tmp_path: Path) -> None
     )
     output = tmp_path / "results"
 
-    assert main(["evaluate", str(source), str(database.parent), str(output)]) == 0
+    assert (
+        main(
+            [
+                "evaluate",
+                str(source),
+                str(database.parent),
+                str(output),
+                "--limit",
+                "1",
+            ]
+        )
+        == 0
+    )
 
     report = json.loads((output / "evaluation-report.json").read_text(encoding="utf-8"))
     assert report["examples"] == 1

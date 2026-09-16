@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import json
 from collections.abc import Sequence
 from itertools import repeat
 from pathlib import Path
 
+from text_to_sql.api import build_service
 from text_to_sql.benchmark import freeze_split, load_bird
 from text_to_sql.config import Settings
 from text_to_sql.demo import create_demo_database
 from text_to_sql.llm import GeminiLLMClient, ScriptedLLMClient, TokenPricing
+from text_to_sql.observability import ServiceMetrics
 from text_to_sql.runner import run_ablation_suite
 
 
@@ -32,10 +35,18 @@ def _parser() -> argparse.ArgumentParser:
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8000)
 
+    smoke = commands.add_parser("smoke", help="make one measured provider call on the demo")
+    smoke.add_argument("--question", default="How many products are there?")
+
     evaluate = commands.add_parser("evaluate", help="run the four BIRD ablations")
     evaluate.add_argument("source", type=Path, help="BIRD JSON split")
     evaluate.add_argument("database_root", type=Path)
     evaluate.add_argument("output_directory", type=Path)
+    evaluate.add_argument(
+        "--limit",
+        type=int,
+        help="evaluate only the first N examples for a development smoke run",
+    )
     evaluate.add_argument(
         "--final",
         action="store_true",
@@ -61,9 +72,33 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         uvicorn.run("text_to_sql.api:app", host=args.host, port=args.port)
         return 0
+    if args.command == "smoke":
+        settings = Settings()
+        outcome = build_service(settings, ServiceMetrics()).ask(args.question)
+        result = outcome.result
+        payload = {
+            "status": outcome.status,
+            "sql": outcome.sql,
+            "rows": [list(row) for row in result.rows] if result else [],
+            "reason": outcome.reason,
+            "attempts": outcome.attempts,
+            "repairs": outcome.repairs,
+            "input_tokens": outcome.input_tokens,
+            "output_tokens_including_thinking": outcome.output_tokens,
+            "estimated_standard_cost_usd": outcome.cost_usd,
+            "model_latency_seconds": outcome.model_latency_seconds,
+            "total_latency_seconds": outcome.total_latency_seconds,
+            "model": outcome.model,
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if outcome.status == "success" else 1
     if args.command == "evaluate":
         settings = Settings()
         examples = load_bird(args.source)
+        if args.limit is not None:
+            if args.limit < 1:
+                raise ValueError("--limit must be positive")
+            examples = examples[: args.limit]
         report_path = args.output_directory / "evaluation-report.json"
         if args.final:
             if len(examples) < 300:
@@ -73,15 +108,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             if report_path.exists():
                 raise FileExistsError("final report already exists; refusing to overwrite it")
 
-        pricing = TokenPricing(
-            settings.input_token_price_per_million,
-            settings.output_token_price_per_million,
-        )
+        input_price, output_price = settings.token_prices
+        pricing = TokenPricing(input_price, output_price)
 
         def llm_factory(_configuration):
             if settings.llm_provider == "gemini":
                 return GeminiLLMClient(
-                    api_key=settings.gemini_api_key,
+                    api_key=settings.resolved_api_key,
                     model=settings.model_name,
                     pricing=pricing,
                 )
@@ -96,6 +129,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             llm_factory=llm_factory,
             output_directory=args.output_directory,
             model_version=settings.model_name if settings.llm_provider == "gemini" else "fake",
+            pricing_usd_per_million=settings.token_prices,
         )
         print(f"Evaluated {report['examples']} examples: {report_path}")
         return 0
