@@ -54,6 +54,11 @@ def test_rejects_empty_malformed_or_mixed_sql(sql: str) -> None:
         validate_sql(sql)
 
 
+def test_rejects_unterminated_string_as_validation_error() -> None:
+    with pytest.raises(SQLValidationError, match="could not be parsed"):
+        validate_sql("SELECT * FROM players WHERE work_rate = 'high")
+
+
 @pytest.mark.parametrize("limit", [0, -1, True, 1.5])
 def test_rejects_invalid_limit(limit: object) -> None:
     with pytest.raises(ValueError, match="positive integer"):

@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sqlglot import exp, parse
-from sqlglot.errors import ParseError
+from sqlglot.errors import ParseError, TokenError
 
 
 class SQLValidationError(ValueError):
@@ -81,7 +81,7 @@ def validate_sql(
 
     try:
         statements = [statement for statement in parse(sql, read=dialect) if statement]
-    except (ParseError, ValueError) as exc:
+    except (ParseError, TokenError, ValueError) as exc:
         raise SQLValidationError(f"SQL could not be parsed: {exc}") from exc
 
     if len(statements) != 1:
@@ -118,4 +118,3 @@ def enforce_read_only(sql: str, *, dialect: str = "sqlite", limit: int = 1_000) 
     """Return executable, row-bounded SQL or raise :class:`SQLValidationError`."""
 
     return validate_sql(sql, dialect=dialect, limit=limit).bounded
-
