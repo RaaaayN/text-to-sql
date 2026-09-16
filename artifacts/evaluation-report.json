@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "not_run",
+  "reason": "The frozen BIRD Mini-Dev evaluation has not been executed yet.",
+  "generated_at": null,
+  "model_version": null,
+  "seed": 20260916,
+  "confidence": 0.95,
+  "bootstrap_resamples": 10000,
+  "examples": 0,
+  "baseline": "direct",
+  "configurations": {},
+  "accuracy_deltas_vs_baseline": {}
+}
+
