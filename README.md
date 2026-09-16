@@ -67,9 +67,24 @@ intervalles d'exactitude et les écarts d'ablation sont obtenus par bootstrap ap
 fixe. Les quatre configurations prévues sont : appel direct, résolution seule, réparation seule,
 et système complet.
 
-Le [rapport versionné](artifacts/evaluation-report.json) indique actuellement `not_run` : aucun
-chiffre BIRD n'est inventé avant la passe finale sur au moins 300 exemples. Une fois le jeu BIRD
-obtenu, son manifeste immuable se crée avec :
+La passe finale a été exécutée sur les 500 exemples SQLite de BIRD Mini-Dev avec
+`gemini-3.1-flash-lite`, `temperature=0` et 10 000 rééchantillonnages bootstrap :
+
+| Configuration | Exactitude d'exécution (IC95) | Écart vs direct (IC95) | Coût moyen | Latence p95 |
+|---|---:|---:|---:|---:|
+| Appel direct | 56,0 % [51,6 ; 60,4] | référence | 0,000960 $ | 1,37 s |
+| Résolution seule | 42,6 % [38,4 ; 47,0] | −13,4 pts [−17,0 ; −9,8] | 0,000604 $ | 1,32 s |
+| Réparation seule | 56,8 % [52,4 ; 61,2] | +0,8 pt [+0,2 ; +1,6] | 0,000971 $ | 1,55 s |
+| Système complet | 43,6 % [39,2 ; 48,0] | −12,4 pts [−16,0 ; −8,8] | 0,000625 $ | 1,39 s |
+
+La résolution réduit le coût d'environ 35 %, mais dégrade nettement l'exactitude. Le système
+complet ne satisfait donc pas le seuil produit d'une amélioration d'au moins 10 points. La boucle
+de réparation sauve 1,0 % des cas dans la configuration complète; son gain isolé reste faible.
+Le [rapport versionné](artifacts/evaluation-report.json) contient les tokens, refus, tentatives,
+coûts, latences et intervalles complets. La passe a consommé 2 027 appels,
+5 512 594 tokens d'entrée et 134 812 tokens de
+sortie/réflexion, soit **1,5804 $** au [tarif standard Gemini publié](https://ai.google.dev/gemini-api/docs/pricing).
+Le manifeste immuable se crée avec :
 
 ```bash
 uv run text-to-sql freeze-split mini_dev.json artifacts/mini-dev-manifest.json
@@ -90,6 +105,7 @@ BIRD ne représente pas un entrepôt d'entreprise et l'exactitude d'exécution p
 deux requêtes sémantiquement différentes sur une base donnée. La résolution est lexicale : elle
 ne couvre ni les synonymes absents des valeurs d'exemple, ni les schémas testés à mille tables.
 Le comparateur normalise l'ordre des colonnes, choix adapté au benchmark mais trop permissif si
-leur identité métier importe. Enfin, ce dépôt ne publiera ni score, ni coût, ni latence p95 avant
-une passe Gemini gelée et complète; les métriques Prometheus du service ne remplacent pas ce
-rapport d'évaluation.
+leur identité métier importe. La résolution lexicale actuelle est le principal échec mesuré :
+elle omet trop souvent des tables ou colonnes utiles. Ces chiffres ne justifient pas encore le
+bullet CV cible; une correction doit être réglée sur un jeu de développement séparé avant toute
+nouvelle passe Mini-Dev. Les métriques Prometheus ne remplacent pas le rapport d'évaluation.

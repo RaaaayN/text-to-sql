@@ -9,4 +9,5 @@ htmlcov/
 data/
 artifacts/*.jsonl
 artifacts/**/*.jsonl
+artifacts/final-run/
 !artifacts/evaluation-report.json

@@ -1,20 +1,73 @@
 {
-  "schema_version": 1,
-  "status": "not_run",
-  "reason": "The frozen BIRD Mini-Dev evaluation has not been executed yet.",
-  "generated_at": null,
-  "model_version": null,
-  "seed": 20260916,
-  "confidence": 0.95,
-  "bootstrap_resamples": 10000,
-  "examples": 0,
+  "accuracy_deltas_vs_baseline": {
+    "full": {"confidence": 0.95, "estimate": -0.124, "high": -0.088, "low": -0.16, "resamples": 10000, "seed": 20260916},
+    "repair_only": {"confidence": 0.95, "estimate": 0.008, "high": 0.016, "low": 0.002, "resamples": 10000, "seed": 20260916},
+    "schema_only": {"confidence": 0.95, "estimate": -0.134, "high": -0.098, "low": -0.17, "resamples": 10000, "seed": 20260916}
+  },
   "baseline": "direct",
+  "bootstrap_resamples": 10000,
+  "confidence": 0.95,
+  "configurations": {
+    "direct": {
+      "configuration": "direct",
+      "cost_usd": {"mean": 0.0009600195, "p95": 0.002442125},
+      "examples": 500,
+      "execution_accuracy": {"confidence": 0.95, "estimate": 0.56, "high": 0.604, "low": 0.516, "resamples": 10000, "seed": 20260916},
+      "latency_seconds": {"p50": 0.778303792, "p95": 1.367102988},
+      "mean_attempts": 1.0,
+      "refusal_rate": 0.012,
+      "repair_rate": 0.0,
+      "tokens": {"input": 1721355, "output": 33114}
+    },
+    "full": {
+      "configuration": "full",
+      "cost_usd": {"mean": 0.000625074, "p95": 0.0011493625},
+      "examples": 500,
+      "execution_accuracy": {"confidence": 0.95, "estimate": 0.436, "high": 0.48, "low": 0.392, "resamples": 10000, "seed": 20260916},
+      "latency_seconds": {"p50": 0.740719625, "p95": 1.390218613},
+      "mean_attempts": 1.046,
+      "refusal_rate": 0.014,
+      "repair_rate": 0.01,
+      "tokens": {"input": 1040712, "output": 34906}
+    },
+    "repair_only": {
+      "configuration": "repair_only",
+      "cost_usd": {"mean": 0.000971297, "p95": 0.0024478},
+      "examples": 500,
+      "execution_accuracy": {"confidence": 0.95, "estimate": 0.568, "high": 0.612, "low": 0.524, "resamples": 10000, "seed": 20260916},
+      "latency_seconds": {"p50": 0.752296458, "p95": 1.548340581},
+      "mean_attempts": 1.012,
+      "refusal_rate": 0.0,
+      "repair_rate": 0.004,
+      "tokens": {"input": 1740556, "output": 33673}
+    },
+    "schema_only": {
+      "configuration": "schema_only",
+      "cost_usd": {"mean": 0.0006043425, "p95": 0.0010013375},
+      "examples": 500,
+      "execution_accuracy": {"confidence": 0.95, "estimate": 0.426, "high": 0.47, "low": 0.384, "resamples": 10000, "seed": 20260916},
+      "latency_seconds": {"p50": 0.80683325, "p95": 1.315044844},
+      "mean_attempts": 0.996,
+      "refusal_rate": 0.04,
+      "repair_rate": 0.0,
+      "tokens": {"input": 1009971, "output": 33119}
+    }
+  },
+  "examples": 500,
+  "evaluation_totals": {
+    "estimated_standard_cost_usd": 1.5803665,
+    "input_tokens": 5512594,
+    "model_calls": 2027,
+    "output_tokens_including_thinking": 134812
+  },
+  "generated_at": "2026-09-16T22:30:36.788312+00:00",
+  "model_version": "gemini-3.1-flash-lite",
   "pricing": {
     "basis": "standard_paid_tier_list_price",
     "currency": "USD",
     "input_per_million_tokens": 0.25,
     "output_per_million_tokens_including_thinking": 1.5
   },
-  "configurations": {},
-  "accuracy_deltas_vs_baseline": {}
+  "schema_version": 1,
+  "seed": 20260916
 }
