@@ -41,13 +41,11 @@ class QueryResponse(BaseModel):
 
 def build_service(settings: Settings, metrics: ServiceMetrics) -> TextToSQLService:
     schema = introspect_sqlite(settings.database_path)
-    pricing = TokenPricing(
-        settings.input_token_price_per_million,
-        settings.output_token_price_per_million,
-    )
+    input_price, output_price = settings.token_prices
+    pricing = TokenPricing(input_price, output_price)
     if settings.llm_provider == "gemini":
         llm = GeminiLLMClient(
-            api_key=settings.gemini_api_key,
+            api_key=settings.resolved_api_key,
             model=settings.model_name,
             pricing=pricing,
         )
@@ -133,4 +131,3 @@ def create_app(
 
 
 app = create_app()
-

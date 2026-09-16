@@ -109,7 +109,11 @@ def test_gemini_requests_json_and_captures_usage_cost_and_latency() -> None:
     response = _Response(
         parsed={"sql": "SELECT COUNT(*) FROM users"},
         text='{"sql":"SELECT COUNT(*) FROM users"}',
-        usage_metadata=SimpleNamespace(prompt_token_count=100, candidates_token_count=20),
+        usage_metadata=SimpleNamespace(
+            prompt_token_count=100,
+            candidates_token_count=20,
+            thoughts_token_count=5,
+        ),
     )
     models = _Models(response)
     ticks = iter([10.0, 10.25])
@@ -123,8 +127,8 @@ def test_gemini_requests_json_and_captures_usage_cost_and_latency() -> None:
     result = client.generate_sql("schema and question")
 
     assert result.sql == "SELECT COUNT(*) FROM users"
-    assert result.usage == TokenUsage(input_tokens=100, output_tokens=20)
-    assert result.cost_usd == pytest.approx(0.0002)
+    assert result.usage == TokenUsage(input_tokens=100, output_tokens=25)
+    assert result.cost_usd == pytest.approx(0.000225)
     assert result.latency_seconds == pytest.approx(0.25)
     assert models.calls[0]["model"] == "gemini-test"
     assert models.calls[0]["config"] == {

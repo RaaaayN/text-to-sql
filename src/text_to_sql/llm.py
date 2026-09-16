@@ -194,7 +194,16 @@ def _usage_from_response(response: object) -> TokenUsage:
         "output_tokens",
         default=0,
     )
-    return TokenUsage(input_tokens=int(input_tokens or 0), output_tokens=int(output_tokens or 0))
+    thinking_tokens = _read_field(
+        metadata,
+        "thoughts_token_count",
+        "thoughtsTokenCount",
+        default=0,
+    )
+    return TokenUsage(
+        input_tokens=int(input_tokens or 0),
+        output_tokens=int(output_tokens or 0) + int(thinking_tokens or 0),
+    )
 
 
 class GeminiLLMClient:
@@ -204,7 +213,7 @@ class GeminiLLMClient:
         self,
         *,
         api_key: str | None = None,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-3.1-flash-lite",
         pricing: TokenPricing | None = None,
         client: object | None = None,
         clock: Callable[[], float] = time.perf_counter,
