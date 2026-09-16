@@ -63,6 +63,15 @@ obtenu, son manifeste immuable se crée avec :
 uv run text-to-sql freeze-split mini_dev.json artifacts/mini-dev-manifest.json
 ```
 
+Une passe de développement peut ensuite exercer le runner complet; la passe finale ajoute des
+garde-fous contre un petit échantillon, le faux fournisseur et l'écrasement du rapport :
+
+```bash
+uv run text-to-sql evaluate mini_dev.json databases artifacts/dev-run
+TEXT_TO_SQL_LLM_PROVIDER=gemini TEXT_TO_SQL_GEMINI_API_KEY=... \
+  uv run text-to-sql evaluate mini_dev.json databases artifacts/final-run --final
+```
+
 ## Limites connues
 
 BIRD ne représente pas un entrepôt d'entreprise et l'exactitude d'exécution peut déclarer égales
