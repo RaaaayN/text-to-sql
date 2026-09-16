@@ -40,3 +40,21 @@ def test_rejects_incomplete_records(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="db_id"):
         load_bird(source)
+
+
+def test_duplicate_upstream_question_ids_become_unique(tmp_path: Path) -> None:
+    source = tmp_path / "duplicates.json"
+    source.write_text(
+        json.dumps(
+            [
+                {"question_id": 7, "db_id": "a", "question": "First", "SQL": "SELECT 1"},
+                {"question_id": 7, "db_id": "a", "question": "Second", "SQL": "SELECT 2"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    examples = load_bird(source)
+
+    assert examples[0].example_id == "7"
+    assert examples[1].example_id == "7:1"

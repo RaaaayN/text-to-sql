@@ -45,6 +45,7 @@ def load_bird(path: str | Path) -> tuple[BenchmarkExample, ...]:
         raise ValueError("BIRD input must be a JSON array")
 
     examples: list[BenchmarkExample] = []
+    seen_ids: set[str] = set()
     for index, record in enumerate(records):
         if not isinstance(record, dict):
             raise ValueError(f"record {index} must be an object")
@@ -54,10 +55,12 @@ def load_bird(path: str | Path) -> tuple[BenchmarkExample, ...]:
             reference_sql = str(record["SQL"])
         except KeyError as exc:
             raise ValueError(f"record {index} is missing {exc.args[0]!r}") from exc
-        raw_id = record.get("question_id", index)
+        raw_id = str(record.get("question_id", index))
+        example_id = raw_id if raw_id not in seen_ids else f"{raw_id}:{index}"
+        seen_ids.add(raw_id)
         examples.append(
             BenchmarkExample(
-                example_id=str(raw_id),
+                example_id=example_id,
                 database_id=database_id,
                 question=question,
                 reference_sql=reference_sql,
@@ -76,4 +79,3 @@ def freeze_split(path: str | Path, *, name: str, seed: int) -> FrozenSplit:
         source_sha256=digest,
         examples=load_bird(source),
     )
-

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from prometheus_client import CollectorRegistry
@@ -168,10 +168,9 @@ def run_ablation_suite(
     output = Path(output_directory)
     output.mkdir(parents=True, exist_ok=True)
     records_by_configuration: dict[str, tuple[EvaluationRecord, ...]] = {}
-    expected_ids = {example.example_id for example in examples}
     for configuration in configurations:
         journal_path = output / f"{configuration.name}.jsonl"
-        records = _load_complete_journal(journal_path, configuration.name, expected_ids)
+        records = _load_complete_journal(journal_path, configuration.name, examples)
         if records is None:
             records = evaluate_configuration(
                 examples,
@@ -199,7 +198,7 @@ def run_ablation_suite(
 
 
 def _load_complete_journal(
-    path: Path, configuration: str, expected_ids: set[str]
+    path: Path, configuration: str, examples: Sequence[BenchmarkExample]
 ) -> tuple[EvaluationRecord, ...] | None:
     """Reuse only a complete, configuration-matching journal."""
 
@@ -210,11 +209,20 @@ def _load_complete_journal(
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     )
-    record_ids = {record.example_id for record in records}
-    if (
-        len(records) != len(expected_ids)
-        or record_ids != expected_ids
-        or any(record.configuration != configuration for record in records)
+    if len(records) != len(examples) or any(
+        record.configuration != configuration for record in records
     ):
         raise ValueError(f"incomplete or mismatched evaluation journal: {path}")
-    return records
+    if any(
+        record.question != example.question or record.reference_sql != example.reference_sql
+        for record, example in zip(records, examples, strict=True)
+    ):
+        raise ValueError(f"journal does not match benchmark examples: {path}")
+    # Older journals may contain duplicate upstream question_id values. The
+    # verified positional alignment lets us migrate those IDs without calls.
+    return tuple(
+        record
+        if record.example_id == example.example_id
+        else replace(record, example_id=example.example_id)
+        for record, example in zip(records, examples, strict=True)
+    )
