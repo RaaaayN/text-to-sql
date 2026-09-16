@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -167,15 +168,19 @@ def run_ablation_suite(
     output = Path(output_directory)
     output.mkdir(parents=True, exist_ok=True)
     records_by_configuration: dict[str, tuple[EvaluationRecord, ...]] = {}
+    expected_ids = {example.example_id for example in examples}
     for configuration in configurations:
-        records = evaluate_configuration(
-            examples,
-            database_root=database_root,
-            configuration=configuration,
-            llm=llm_factory(configuration),
-        )
+        journal_path = output / f"{configuration.name}.jsonl"
+        records = _load_complete_journal(journal_path, configuration.name, expected_ids)
+        if records is None:
+            records = evaluate_configuration(
+                examples,
+                database_root=database_root,
+                configuration=configuration,
+                llm=llm_factory(configuration),
+            )
+            write_jsonl(journal_path, records)
         records_by_configuration[configuration.name] = records
-        write_jsonl(output / f"{configuration.name}.jsonl", records)
     report = build_ablation_report(
         records_by_configuration,
         baseline="direct",
@@ -191,3 +196,25 @@ def run_ablation_suite(
         }
     write_json(output / "evaluation-report.json", report)
     return report
+
+
+def _load_complete_journal(
+    path: Path, configuration: str, expected_ids: set[str]
+) -> tuple[EvaluationRecord, ...] | None:
+    """Reuse only a complete, configuration-matching journal."""
+
+    if not path.is_file():
+        return None
+    records = tuple(
+        EvaluationRecord(**json.loads(line))
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    )
+    record_ids = {record.example_id for record in records}
+    if (
+        len(records) != len(expected_ids)
+        or record_ids != expected_ids
+        or any(record.configuration != configuration for record in records)
+    ):
+        raise ValueError(f"incomplete or mismatched evaluation journal: {path}")
+    return records

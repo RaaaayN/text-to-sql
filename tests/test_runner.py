@@ -11,6 +11,7 @@ from text_to_sql.runner import (
     AblationConfiguration,
     bird_database_path,
     evaluate_configuration,
+    run_ablation_suite,
 )
 
 
@@ -71,3 +72,33 @@ def test_repair_ablation_records_attempts(bird_root: Path) -> None:
 def test_missing_database_is_explicit(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="shop"):
         bird_database_path(tmp_path, "shop")
+
+
+def test_ablation_suite_reuses_complete_journal(bird_root: Path, tmp_path: Path) -> None:
+    output = tmp_path / "results"
+    configuration = AblationConfiguration("direct", False, False)
+    factory_calls = 0
+
+    def factory(_configuration):
+        nonlocal factory_calls
+        factory_calls += 1
+        return ScriptedLLMClient([{"sql": "SELECT count(*) FROM products"}])
+
+    run_ablation_suite(
+        [_example()],
+        database_root=bird_root,
+        llm_factory=factory,
+        output_directory=output,
+        model_version="test",
+        configurations=[configuration],
+    )
+    run_ablation_suite(
+        [_example()],
+        database_root=bird_root,
+        llm_factory=factory,
+        output_directory=output,
+        model_version="test",
+        configurations=[configuration],
+    )
+
+    assert factory_calls == 1
