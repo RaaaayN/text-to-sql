@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "text-to-sql"
+version = "0.1.0"
+description = "A measured, read-only natural-language-to-SQL service"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.116.1",
+  "prometheus-client==0.22.1",
+  "pydantic-settings==2.10.1",
+  "sqlglot==27.12.0",
+  "uvicorn[standard]==0.35.0",
+]
+
+[project.optional-dependencies]
+gemini = ["google-genai==1.33.0"]
+dev = [
+  "httpx==0.28.1",
+  "pytest==8.4.2",
+  "pytest-cov==6.2.1",
+  "ruff==0.12.12",
+]
+
+[project.scripts]
+text-to-sql = "text_to_sql.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/text_to_sql"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
