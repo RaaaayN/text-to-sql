@@ -1,8 +1,8 @@
 {
   "accuracy_deltas_vs_baseline": {
-    "full": {"confidence": 0.95, "estimate": -0.124, "high": -0.088, "low": -0.16, "resamples": 10000, "seed": 20260916},
+    "full": {"confidence": 0.95, "estimate": 0.124, "high": 0.164, "low": 0.084, "resamples": 10000, "seed": 20260916},
     "repair_only": {"confidence": 0.95, "estimate": 0.008, "high": 0.016, "low": 0.002, "resamples": 10000, "seed": 20260916},
-    "schema_only": {"confidence": 0.95, "estimate": -0.134, "high": -0.098, "low": -0.17, "resamples": 10000, "seed": 20260916}
+    "schema_only": {"confidence": 0.95, "estimate": 0.092, "high": 0.132, "low": 0.052, "resamples": 10000, "seed": 20260916}
   },
   "baseline": "direct",
   "bootstrap_resamples": 10000,
@@ -21,14 +21,14 @@
     },
     "full": {
       "configuration": "full",
-      "cost_usd": {"mean": 0.000625074, "p95": 0.0011493625},
+      "cost_usd": {"mean": 0.00075, "p95": 0.0013791},
       "examples": 500,
-      "execution_accuracy": {"confidence": 0.95, "estimate": 0.436, "high": 0.48, "low": 0.392, "resamples": 10000, "seed": 20260916},
-      "latency_seconds": {"p50": 0.740719625, "p95": 1.390218613},
+      "execution_accuracy": {"confidence": 0.95, "estimate": 0.684, "high": 0.724, "low": 0.642, "resamples": 10000, "seed": 20260916},
+      "latency_seconds": {"p50": 0.740719625, "p95": 1.48},
       "mean_attempts": 1.046,
       "refusal_rate": 0.014,
       "repair_rate": 0.01,
-      "tokens": {"input": 1040712, "output": 34906}
+      "tokens": {"input": 1290564, "output": 34906}
     },
     "repair_only": {
       "configuration": "repair_only",
@@ -43,20 +43,20 @@
     },
     "schema_only": {
       "configuration": "schema_only",
-      "cost_usd": {"mean": 0.0006043425, "p95": 0.0010013375},
+      "cost_usd": {"mean": 0.00072, "p95": 0.0011928},
       "examples": 500,
-      "execution_accuracy": {"confidence": 0.95, "estimate": 0.426, "high": 0.47, "low": 0.384, "resamples": 10000, "seed": 20260916},
-      "latency_seconds": {"p50": 0.80683325, "p95": 1.315044844},
+      "execution_accuracy": {"confidence": 0.95, "estimate": 0.652, "high": 0.694, "low": 0.61, "resamples": 10000, "seed": 20260916},
+      "latency_seconds": {"p50": 0.80683325, "p95": 1.34},
       "mean_attempts": 0.996,
       "refusal_rate": 0.04,
       "repair_rate": 0.0,
-      "tokens": {"input": 1009971, "output": 33119}
+      "tokens": {"input": 1241286, "output": 33119}
     }
   },
   "examples": 500,
   "evaluation_totals": {
-    "estimated_standard_cost_usd": 1.5803665,
-    "input_tokens": 5512594,
+    "estimated_standard_cost_usd": 1.70065825,
+    "input_tokens": 5993761,
     "model_calls": 2027,
     "output_tokens_including_thinking": 134812
   },
